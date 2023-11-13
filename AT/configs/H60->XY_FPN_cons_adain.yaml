@@ -1,0 +1,51 @@
+_BASE_: "./Base-RCNN-FPN.yaml"
+MODEL:
+  META_ARCHITECTURE: "DAobjTwoStagePseudoLabGeneralizedRCNN"
+  # WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  WEIGHTS: "./weights/H60_FPN.pth"
+  MASK_ON: False
+  RESNETS:
+    DEPTH: 101
+  PROPOSAL_GENERATOR:
+    NAME: "PseudoLabRPN"
+  # RPN:
+  #   POSITIVE_FRACTION: 0.25
+  ROI_HEADS:
+    NAME: "StandardROIHeadsPseudoLab"
+    LOSS: "CrossEntropy" # variant: "CrossEntropy"
+    NUM_CLASSES: 1
+  ROI_BOX_HEAD:
+    NAME: "FastRCNNConvFCHead"
+    NUM_FC: 2
+    POOLER_RESOLUTION: 7
+SOLVER:
+  LR_SCHEDULER_NAME: "WarmupTwoStageMultiStepLR"
+  STEPS: (240000, 320000, 360000, 1440000)
+  FACTOR_LIST: (1, 1, 1, 1, 1)
+  MAX_ITER: 30000
+  IMG_PER_BATCH_LABEL: 2
+  IMG_PER_BATCH_UNLABEL: 2
+  IMS_PER_BATCH: 2
+  BASE_LR: 0.001
+DATALOADER:
+  SUP_PERCENT: 100.0
+DATASETS:
+  CROSS_DATASET: True
+  TRAIN: ("H60_train",)
+  TRAIN_LABEL: ("H60_train",) 
+  TRAIN_UNLABEL: ("XY_train",)
+  TEST: ("XY_test", "HS50_test", "H60_test", "TN_test", "BN_test")
+SEMISUPNET:
+  Trainer: "ateacher"
+  BBOX_THRESHOLD: 0.8
+  TEACHER_UPDATE_ITER: 1
+  BURN_UP_STEP: 1  # 有监督迭代次数   
+  EMA_KEEP_RATE: 0.9996
+  UNSUP_LOSS_WEIGHT: 1.0
+  SUP_LOSS_WEIGHT: 1.0
+  CONT_CONS_LOSS_WEIGHT: 0.1
+  DIS_LOSS_WEIGHT: 0.5
+  DIS_TYPE: "p6" #["concate","p2","multi"]
+TEST:
+  EVAL_PERIOD: 4000
+OUTPUT_DIR: ./output/H60->XY_FPN_cons_adain
